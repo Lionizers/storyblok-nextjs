@@ -1,6 +1,8 @@
 import { cloneElement, FunctionComponent, isValidElement } from "react";
-import { ErrorBox } from "./ErrorBox";
-import { Block } from "./types";
+import { ErrorBox } from "./error-box";
+import { Block } from "./storyblok-types";
+import { Components } from "./types";
+import { createRichTextComponent } from "./richtext";
 
 const clickToEdit = process.env.NODE_ENV !== "development";
 if (!clickToEdit) {
@@ -8,6 +10,7 @@ if (!clickToEdit) {
     "Click-to-edit is disabled in development mode as this would break fast-refresh."
   );
 }
+
 function wrapBlok(comp: FunctionComponent) {
   if (clickToEdit && typeof comp === "function") {
     const w = (props: any) => {
@@ -48,12 +51,12 @@ export function visualEditorProps(block: Block) {
   return block._editable ? editableDataAttrs(block._editable) : undefined;
 }
 
-export function initStoryblok(bloks: Record<string, FunctionComponent<any>>) {
-  const components: Record<string, FunctionComponent<any>> = Object.fromEntries(
-    Object.entries(bloks).map(([type, comp]) => [type, wrapBlok(comp)])
+export function createComponents(blocks: Components) {
+  const components: Components = Object.fromEntries(
+    Object.entries(blocks).map(([type, comp]) => [type, wrapBlok(comp)])
   );
 
-  function Storyblok(props: Block & Record<string, unknown>) {
+  function Block(props: Block & Record<string, unknown>) {
     if (!props.component) {
       return (
         <ErrorBox title="Invalid blok">
@@ -74,9 +77,9 @@ export function initStoryblok(bloks: Record<string, FunctionComponent<any>>) {
     return <Component {...props} />;
   }
 
-  Storyblok.List = (
+  function Blocks(
     props: { blocks: ReadonlyArray<Block> } & Record<string, any>
-  ) => {
+  ) {
     const { blocks, _editable, ...defaults } = props;
     const overrides = _editable === false ? { _editable: "" } : {};
     if (blocks && !Array.isArray(blocks)) {
@@ -84,7 +87,7 @@ export function initStoryblok(bloks: Record<string, FunctionComponent<any>>) {
       return [];
     }
     return blocks?.map((blok, i) => (
-      <Storyblok
+      <Block
         key={blok._uid ?? i}
         _index={i}
         _total={blocks.length}
@@ -93,7 +96,15 @@ export function initStoryblok(bloks: Record<string, FunctionComponent<any>>) {
         {...overrides}
       />
     ));
-  };
+  }
 
-  return Storyblok;
+  const RichText = createRichTextComponent(Block);
+
+  return { Block, Blocks, RichText };
 }
+
+type sb = ReturnType<typeof createComponents>;
+
+export type BlockComponent = sb["Block"];
+export type BlocksComponent = sb["Blocks"];
+export type RichTextComponent = sb["RichText"];

@@ -1,7 +1,7 @@
 import { ISbStoryParams } from "storyblok-js-client";
 import { is } from "type-assurance";
 
-import { Story, StoryLink } from "./types";
+import { Story, StoryLink } from "./storyblok-types";
 
 export function versionParams(token?: string): ISbStoryParams {
   return {
@@ -31,12 +31,19 @@ export function getStoryPath(story: Story) {
   if (path) return path;
   const defaultFullSlug = story.default_full_slug;
   if (defaultFullSlug) {
-    if (is(story, { lang: String, translated_slugs: [{ lang: String, path: String, published: true }] })) {
+    if (
+      is(story, {
+        lang: String,
+        translated_slugs: [{ lang: String, path: String, published: true }],
+      })
+    ) {
       path = story.translated_slugs.find((i) => i.lang === story.lang)?.path;
     }
     return path ?? defaultFullSlug;
   }
-  return story.lang == "default" ? story.full_slug : removeFirstFolder(story.full_slug);
+  return story.lang == "default"
+    ? story.full_slug
+    : removeFirstFolder(story.full_slug);
 }
 
 /**
@@ -113,7 +120,10 @@ export function joinPath(...parts: Array<string | undefined>) {
   return filteredParts.join("/").replace(/\/{2,}/g, "/");
 }
 
-export function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>) {
+export function deepMerge(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>
+) {
   for (const [key, value] of Object.entries(source)) {
     const existing = target[key];
     if (is(value, {}) && !Array.isArray(value) && is(existing, {})) {

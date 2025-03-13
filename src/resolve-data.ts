@@ -1,28 +1,16 @@
-import { ComponentPropsWithoutRef, FunctionComponent } from "react";
 import { is, optional, typeGuard } from "type-assurance";
 
 import { deepMerge, startTimer } from "./helpers";
-import { rewriteLink, rewriteLinks } from "./rewriteLinks";
-import { Asset, DocImage, isAsset, isBlock, isDocImage, Story } from "./types";
-
-//eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Components = Record<string, FunctionComponent<any>>;
-
-export type Resolvers<C extends Components, CustomContext> = {
-  [K in keyof C]?: Resolver<C[K], CustomContext>;
-};
-
-type Resolver<C extends FunctionComponent, CustomContext> = (
-  props: ComponentPropsWithoutRef<C>,
-  context: ResolverContext<CustomContext>,
-  ancestors: unknown[]
-) => Promise<void | Partial<ComponentPropsWithoutRef<C>>>;
-
-export type ResolverContext<CustomContext> = CustomContext & {
-  prefix: string;
-  locale?: string;
-  revalidate?: boolean;
-};
+import { rewriteLink, rewriteLinks } from "./rewrite-links";
+import {
+  Asset,
+  RichTextImage,
+  isAsset,
+  isBlock,
+  isRichTextImage,
+  Story,
+} from "./storyblok-types";
+import { Components, ResolverContext, Resolvers } from "./types";
 
 /**
  * Extends a Story by loading and inlining external data.
@@ -30,10 +18,10 @@ export type ResolverContext<CustomContext> = CustomContext & {
  * resolver has been provided. It awaits the data and adds it to the component.
  * The resolvers are called with the matched component and the given context.
  */
-export async function resolveData<T extends Components, CustomContext>(
+export async function resolveData<T extends Components>(
   story: Story,
-  resolvers: Resolvers<T, CustomContext>,
-  context: ResolverContext<CustomContext>
+  resolvers: Resolvers<T>,
+  context: ResolverContext
 ) {
   const logTime = startTimer("resolveData");
   const data = {};
@@ -52,15 +40,19 @@ export async function resolveData<T extends Components, CustomContext>(
 
 const isLocaleAware = typeGuard({ locale: optional(String) });
 
-function resolve<T extends Components, X>(
+function resolve<T extends Components>(
   value: unknown,
   data: Record<string, unknown>,
-  resolvers: Resolvers<T, X>,
-  context: ResolverContext<X>,
+  resolvers: Resolvers<T>,
+  context: ResolverContext,
   ancestors: unknown[] = [],
   queue: Promise<unknown>[]
 ) {
-  if (is(value, {})) {
+  if (is(value, [])) {
+    value.forEach((v) =>
+      resolve(v, data, resolvers, context, [value, ...ancestors], queue)
+    );
+  } else if (is(value, {})) {
     if (isBlock(value) && isLocaleAware(value)) {
       value.locale = context.locale;
       const resolver = resolvers[value.component];
@@ -90,7 +82,7 @@ function resolve<T extends Components, X>(
         );
       }
     } else if (
-      (isAsset(value) || isDocImage(value)) &&
+      (isAsset(value) || isRichTextImage(value)) &&
       shouldInlineSvg(value)
     ) {
       queue.push(
@@ -103,25 +95,21 @@ function resolve<T extends Components, X>(
     Object.values(value).forEach((v) =>
       resolve(v, data, resolvers, context, [value, ...ancestors], queue)
     );
-  } else if (is(value, [])) {
-    value.forEach((v) =>
-      resolve(v, data, resolvers, context, [value, ...ancestors], queue)
-    );
   }
   return value;
 }
 
-function shouldInlineSvg(value: Asset | DocImage) {
-  const src = isDocImage(value) ? value.attrs.src : value.filename;
+function shouldInlineSvg(value: Asset | RichTextImage) {
+  const src = isRichTextImage(value) ? value.attrs.src : value.filename;
   return src.endsWith(".svg");
 }
 
 async function fetchAndInlineSvg(
-  image: Asset | DocImage,
+  image: Asset | RichTextImage,
   data: Record<string, unknown>,
   revalidate: number | false
 ) {
-  const src = isDocImage(image) ? image.attrs.src : image.filename;
+  const src = isRichTextImage(image) ? image.attrs.src : image.filename;
   const res = await fetch(src, {
     next: {
       revalidate,
@@ -129,7 +117,7 @@ async function fetchAndInlineSvg(
   } as RequestInit);
   if (res.ok) {
     const svg = await res.text();
-    const target = isDocImage(image) ? image.attrs : image;
+    const target = isRichTextImage(image) ? image.attrs : image;
     target.svg = svg;
     data[target.id] = { svg };
   } else {
@@ -142,7 +130,7 @@ async function inlineSvgs(
   data: Record<string, unknown>,
   revalidate: number | false
 ) {
-  if ((isAsset(value) || isDocImage(value)) && shouldInlineSvg(value)) {
+  if ((isAsset(value) || isRichTextImage(value)) && shouldInlineSvg(value)) {
     await fetchAndInlineSvg(value, data, revalidate);
   } else if (is(value, {})) {
     await Promise.all(

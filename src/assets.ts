@@ -1,4 +1,4 @@
-import { Asset } from "./types";
+import { Asset } from "./storyblok-types";
 
 type Dimensions = {
   width?: number;
@@ -65,7 +65,9 @@ type ImageOpts = Dimensions & {
 };
 export function getImageProps(asset: Asset, opts?: ImageOpts) {
   if (!asset?.filename) return { src: opts?.fallback, alt: "" };
-  const { width, height, unoptimized, ...props } = getAssetDimensions(asset.filename);
+  const { width, height, unoptimized, ...props } = getAssetDimensions(
+    asset.filename
+  );
   return {
     src: encodeAspect(asset.filename, opts),
     alt: asset.alt || asset.name || "",
@@ -97,7 +99,8 @@ export function getImageProps(asset: Asset, opts?: ImageOpts) {
  */
 function encodeAspect(src: string, opts?: ImageOpts) {
   if (opts) {
-    const ratio = opts.width && opts.height ? opts.width / opts.height : opts.aspect;
+    const ratio =
+      opts.width && opts.height ? opts.width / opts.height : opts.aspect;
     if (ratio) {
       return `${src}?aspect=${ratio}`;
     }

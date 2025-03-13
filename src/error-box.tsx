@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from "react";
 
-import { isStoryblokPreview } from "./hooks/useStoryblokBridge";
+import { isStoryblokPreview } from "./hooks/storyblok-bridge";
 
 function useIsPreview() {
   const [preview, setPreview] = useState(false);

@@ -1,7 +1,19 @@
 import { is } from "type-assurance";
 
-import { getDocLinkStoryPath, getStoryLinkPath, getStoryPath, joinPath } from "./helpers";
-import { isDocStoryLink, isEmailLink, isStory, isStoryLink, isUrlLink, Story } from "./types";
+import {
+  getDocLinkStoryPath,
+  getStoryLinkPath,
+  getStoryPath,
+  joinPath,
+} from "./helpers";
+import {
+  isRichTextStoryLink,
+  isEmailLink,
+  isStory,
+  isStoryLink,
+  isUrlLink,
+  Story,
+} from "./storyblok-types";
 
 export function rewriteLinks(value: unknown, prefix: string) {
   if (is(value, [])) {
@@ -16,8 +28,12 @@ export function rewriteLink(value: unknown, prefix: string) {
   if (isStoryLink(value)) {
     const path = getStoryLinkPath(value);
     if (path) value.public_url = joinPath("/", prefix, path);
-  } else if (isDocStoryLink(value)) {
-    value.attrs.href = joinPath("/", prefix, getDocLinkStoryPath(value.attrs.story));
+  } else if (isRichTextStoryLink(value)) {
+    value.attrs.href = joinPath(
+      "/",
+      prefix,
+      getDocLinkStoryPath(value.attrs.story)
+    );
   } else if (isStory(value)) {
     value.public_url = joinPath("/", prefix, getStoryPath(value as Story));
   } else if (isUrlLink(value)) {

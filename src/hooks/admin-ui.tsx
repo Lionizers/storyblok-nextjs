@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 
-import { loadScript } from "./loadScript";
+import { loadScript } from "./load-script";
 
 declare global {
   interface Window {
@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-export function useAdminUI(space?: number, previewUrl?: string) {
+export function useAdminUI(space?: number | string, previewPath?: string) {
   // Make sure we only load once, even in dev mode when effect runs twice
   const loaded = useRef(false);
 
@@ -26,14 +26,18 @@ export function useAdminUI(space?: number, previewUrl?: string) {
             // this breaks when running inside Next's app router due to
             // `state` being null in that case. The workaround is to call
             // `replaceState()` and fire a synthetic event in the next tick:
-            window.history.replaceState({}, "", `#/me/spaces/${space}/stories/0/0/index/0`);
+            window.history.replaceState(
+              {},
+              "",
+              `#/me/spaces/${space}/stories/0/0/index/0`
+            );
             setTimeout(() => {
               window.dispatchEvent(
                 new PopStateEvent("popstate", {
                   state: {
                     __NA: true, // Prevents Next.js from handling the event
                   },
-                }),
+                })
               );
             }, 0);
             return true;
@@ -56,9 +60,9 @@ export function useAdminUI(space?: number, previewUrl?: string) {
         };
       }
 
-      if (previewUrl) {
+      if (previewPath) {
         // Set the preview URL to the current origin
-        window.STORYBLOK_PREVIEW_URL = window.origin + previewUrl;
+        window.STORYBLOK_PREVIEW_URL = window.origin + previewPath;
       }
 
       // Storyblok uses www.satismeter.com to collect customer feedback but we

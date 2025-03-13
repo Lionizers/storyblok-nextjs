@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { isStoryblokPreview } from "./useStoryblokBridge";
+import { isStoryblokPreview } from "./storyblok-bridge";
 
 export function usePreventLinkClicks() {
   useEffect(() => {
