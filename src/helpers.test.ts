@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { joinPath } from "./helpers";
+import { extendUrl, joinPath } from "./helpers";
 
 describe("#joinPath", () => {
   test("given two paths to join, it should return the joined path", () => {
@@ -61,5 +61,22 @@ describe("#joinPath", () => {
   test("given empty paths, it should return an empty string", () => {
     const result = joinPath("", "", "");
     expect(result).toBe("");
+  });
+});
+
+describe("#extendUrl", () => {
+  test("given a prefix and a pararm, it should add both ", () => {
+    const result = extendUrl("/foo", "/pre", new URLSearchParams({ a: "b" }));
+    expect(result).toBe("/pre/foo?a=b");
+  });
+
+  test("given a an existing pararm, it should overwrite it", () => {
+    const result = extendUrl("/foo?a=a", "", new URLSearchParams({ a: "b" }));
+    expect(result).toBe("/foo?a=b");
+  });
+
+  test("given empty pararms, it should not append a questionmark", () => {
+    const result = extendUrl("/bar", "/foo", new URLSearchParams({}));
+    expect(result).toBe("/foo/bar");
   });
 });

@@ -1,25 +1,23 @@
 import { ComponentPropsWithoutRef, FunctionComponent } from "react";
-import { StoriesParams, Story } from "./storyblok-types";
-import { StoryblokClient } from "@storyblok/react";
+import { Story } from "./storyblok-types";
+import { StoryLoader } from "./story-loader";
 
 export interface PageParams {
-  lang?: string;
   slug: string[];
-  token?: string;
+  lang?: string;
 }
+
+export type SearchParams = { [key: string]: string | string[] | undefined };
 
 export interface PageProps {
   params: Promise<PageParams>;
+  searchParams?: Promise<SearchParams>;
 }
 
 export interface ResolverContext {
-  params: PageParams;
   story: Story;
-  prefix: string;
-  locale?: string;
+  loader: StoryLoader;
   revalidate?: boolean;
-  client: StoryblokClient;
-  getStories: (storyParams: StoriesParams) => Promise<Story[]>;
 }
 
 export type Components = Record<string, FunctionComponent<any>>;

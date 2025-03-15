@@ -8,15 +8,11 @@ import {
 } from "storyblok-js-client";
 import { is } from "type-assurance";
 
-import { deepMerge, withCorsHeaders } from "../index.js";
-import { rewriteLink } from "../rewrite-links.js";
-import {
-  isAsset,
-  isBlock,
-  isRichTextImage,
-  Story,
-} from "../storyblok-types.js";
-import { loadScript } from "./load-script.js";
+import { deepMerge } from "../helpers";
+import { withCorsHeaders } from "../assets";
+import { rewriteLink } from "../rewrite-links";
+import { isAsset, isBlock, isRichTextImage, Story } from "../storyblok-types";
+import { loadScript } from "./load-script";
 
 interface BridgeEvent<S extends ISbComponentType<string> = any> {
   action: BridgeEventType;
@@ -116,7 +112,7 @@ export function useStoryblokBridge(
 }
 
 async function mergeResolvedData(value: unknown, initialStory: Story) {
-  const { public_url_prefix, resolved_data } = initialStory;
+  const { resolved_data, public_url_prefix, preview_params } = initialStory;
   if (is(value, [])) {
     await Promise.all(value.map((v) => mergeResolvedData(v, initialStory)));
   } else if (is(value, {})) {
@@ -143,7 +139,11 @@ async function mergeResolvedData(value: unknown, initialStory: Story) {
       }
     }
     if (public_url_prefix) {
-      rewriteLink(value, public_url_prefix);
+      rewriteLink(
+        public_url_prefix,
+        new URLSearchParams(preview_params),
+        value
+      );
     }
     await Promise.all(
       Object.values(value).map((v) => mergeResolvedData(v, initialStory))

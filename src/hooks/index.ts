@@ -1,3 +1,5 @@
+"use client";
+
 import { usePreventLinkClicks } from "./prevent-link-clicks";
 import { useScrollBlokIntoView } from "./scroll-blok-into-view";
 import { useStoryblokBridge } from "./storyblok-bridge";

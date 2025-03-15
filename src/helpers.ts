@@ -120,6 +120,20 @@ export function joinPath(...parts: Array<string | undefined>) {
   return filteredParts.join("/").replace(/\/{2,}/g, "/");
 }
 
+export function extendUrl(
+  href: string,
+  prefix?: string,
+  params?: URLSearchParams
+) {
+  const url = new URL(joinPath(prefix, href), "file://");
+  if (params) {
+    params.forEach((value, name) => {
+      url.searchParams.set(name, value);
+    });
+  }
+  return url.pathname + url.search;
+}
+
 export function deepMerge(
   target: Record<string, unknown>,
   source: Record<string, unknown>
@@ -133,12 +147,4 @@ export function deepMerge(
     }
   }
   return target;
-}
-
-export function startTimer(label: string) {
-  const start = Date.now();
-  return (suffix?: string) => {
-    const s = suffix ? `${label}:${suffix}` : label;
-    if (process.env.DEBUG) console.log(s, Date.now() - start, "ms");
-  };
 }

@@ -19,96 +19,267 @@ npm install storyblok-nextjs
 
 ## Quick Start
 
-1. Create a Storyblok client with your **public** API token:
+## 1. Create React components for your blocks
+
+Let's start with a simple component that matches the `teaser` block type as it is present in Storyblok's Demo Space:
 
 ```ts
-import { createStoryblokClient } from "storyblok-nextjs";
+// /blocks/Teaser.tsx
 
-const token = process.env.STORYBLOK_API_TOKEN;
-export const sbClient = createStoryblokClient(token);
-```
-
-The client uses a custom fetch implementation to integrate with Next's data cache. (TODO: explain how & why).
-
-2. Create React components for your "bloks":
-
-```ts
-// components/bloks/my-block.tsx
 type Props = {
   title: string;
-  body: string;
 };
-export function MyBlok({ title, body }: Props) {
+export function Teaser({ title }: Props) {
   return (
-    <section>
-      <h1>{title}</h1>
-      <p>{body}</p>
-    </section>
+    <div>
+      <h2>{title}</h2>
+    </div>
   );
 }
 ```
 
-> **NOTE**
-> You don't need to do anything special here. The attributes required for the visual editor get added automatically.
+Obviously, a teaser with just a title is not very helpful. No worries, we'll revisit this later. Note that we don't have to do anything special to make the component compatible with Storyblok's visual editor. The _Render components_, we'll create in the next step will take care of this.
 
-3. Export all your bloks in one place:
+## 2. Create Render components  
+
+In order to render our blocks, we need some helpers – the so called _Render components_:
+
+* `<Render.List />` – Renders a list of blocks.
+* `<Render.One />` – Renders a single block.
+* `<Render.RichText />` – Renders a RichText document which may contain blocks.
+* `<Render.LivePreview />` – Renders a story, enabling live updates via the Storyblok Bridge.
+
+We can create all these components by calling `createRenderComponents()`, passing all our previously created blocks. Make sure to use the same names as the _technical name_ in your Block Library.
 
 ```ts
-// /components/bloks/index.ts
-export * from "./MyBlock";
-export * from "./AnotherBlock";
-// ...
+// /blocks/index.ts
+
+import { createRenderComponents } from "storyblok-nextjs";
+import feature from "./Feature";
+import grid from "./Grid";
+import teaser from "./Teaser";
+import page from "./Page";
+
+export const Render = createRenderComponents({
+  feature,
+  grid,
+  teaser,
+  page,
+});
 ```
 
-4. Create a `Storyblok` component to render your _bloks_:
+## 3. Use the Render components
 
-```ts
-// components/Storyblok.tsx
-import { initStoryblok } from "storyblok-nextjs";
-import * as bloks from "./bloks";
+Let's create another block for a type that also comes with Storyblok's Demo Space: a `grid`. It has a field called _columns_ with the type _Blocks_. We can type this properly by importing the `Block` type from `storyblok-nextjs`.
 
-export const Storyblok = initStoryblok(bloks);
-```
+We'll then import the `Render` components we created in the previous step and use `<Render.List />` to render the grid columns:
 
-5. Fetch a story and render it:
+```tsx
+// /blocks/Grid.tsx
 
-```typescript
-// app/[...slug]/page.tsx
-import { Storyblok } from "@/components/Storyblok";
-import { sbClient } from "@/lib/storyblok";
+import type { Block } from "storyblok-nextjs";
+import { Render } from "@/blocks";
 
-export default async function Page({ params }) {
-  const story = await sbClient.getStory(params.slug.join("/"));
-  return <Storyblok {...story.content} />;
+type Props = {
+  columns: Block[];
+};
+
+export default function Grid({ columns }: Props) {
+  return (
+    <div className="grid grid-cols-3">
+      <Render.List blocks={columns} />
+    </div>
+  );
 }
 ```
 
-## Preview Mode
+### 3.1 Rendering rich text
 
-To support Storyblok's visual editor, create a preview route that reads the preview token from the URL:
+The `<Render.RichText />` component can be used to render rich text fields with nested blocks. As an example, we'll add a rich text field to the teaser block:
 
-```ts
-// app/preview/[token]/[...slug]/page.ts
-export default async function Page({ params }) {
-  const story = await sbClient.getStory(params.slug.join("/"), {
-    version: "draft",
-    token: params.token,
-  });
-  return <ClientPage story={story} />;
+```tsx
+// /blocks/Teaser.tsx
+
+import type { RichText } from "storyblok-nextjs";
+import { Render } from "@/blocks";
+
+type Props = {
+  headline: string;
+  text?: RichText;
+};
+
+export default function Teaser({ headline, text }: Props) {
+  return (
+    <div>
+      <h2 className="text-2xl mb-10">{headline}</h2>
+      <Render.RichText text={text} />
+    </div>
+  );
 }
 ```
 
-In order to get live preview working, we need to create a client component that connects our bloks to the editor via the Storyblok Bridge. This can be done using the `useStoryblok` hook:
+
+## 4. Create a `StoryblokNext` instance
+
+Next, we'll create an instance of `StoryblokNext`. It takes a couple of options that we will cover later. For now, all you need is a Storyblok preview token. If omitted, StoryblokNext will try to read it from the `STORYBLOK_PREVIEW_TOKEN` env variable.
 
 ```ts
+// /storyblok.ts
+
+import { StoryblokNext } from "storyblok-nextjs/server";
+
+export const sb = new StoryblokNext({
+  previewToken: "YOUR_PREVIEW_TOKEN"
+});
+```
+
+## 5. Create some routes
+
+Using the Next.js App Router, create the following three routes:
+
+```
+app
+├── [[...slug]]
+│   └── page.tsx
+├── preview
+│   └── [...slug]
+│       └── page.tsx
+└── admin
+    └── page.tsx
+    └── webhook
+        └── route.ts
+```
+
+* `/[[...slug]]` – The default route to serve the server-rendered published pages
+* `/preview/[...slug]` – Route for live previews in the Visual Editor
+* `/admin` – The Storyblok admin UI served under our domain
+* `/admin/webhook` – A webhook to invalidate stories upon publish
+
+This is the most basic setup. For multilingual websites, the default route would be `/[lang]/[[...slug]]` instead.
+
+#### 5.1 The default route
+
+For the default route, we'll use the `page()` method of the `StoryblokNext` instance we created earlier.
+It will return a React Server component that loads a published story using the requested `slug` (and optionally `lang`) and renders it using the provided _Render_ components:
+
+```tsx
+// /app/[[...slug]]/page.tsx
+
+import { sb } from "@/storyblok";
+import { Render } from "@/blocks";
+
+export const dynamic = "error";
+export const dynamicParams = true;
+
+export default sb.page(Render);
+```
+
+#### 5.2 The preview route
+
+The preview route works quite similar, but instead of the _Render_ components, we need to pass a _Client Component_ to the `previewPage()` method:
+
+```tsx
+// /app/preview/[...slug]/page.tsx
+
+import { sb } from "@/storyblok";
+import Preview from "./Preview";
+
+export default sb.previewPage(Preview);
+```
+
+This is what the Preview component looks like:
+
+```tsx
+// /app/preview/[...slug]/Preview.tsx
+
 "use client";
+import { Render } from "@/blocks";
+export default Render.LivePreview;
+```
 
-import { useStoryblok } from "storyblok-nextjs/hooks";
+The important part is the `"use client"` directive at the top of the file. Everything from down here will happen in the client. This is what allows us to get the instant live previews inside Storyblok's visual editor.
 
-export function ClientPage({ story }) {
-  const previewStory = useStoryblok(story);
-  return <Storyblok {...previewStory.content} />;
+### 5.3 The admin route
+
+The admin route is optional, you can also use `https://app.storyblok.com` directly. The advantage of this approach is that you don't need to set up HTTPS for local development. It also allows you to add you own branding to the login page via CSS.
+
+```tsx
+// /app/admin/page.tsx
+
+import { sb } from "@/storyblok";
+export default sb.adminPage();
+```
+
+### 5.3 The webhook
+
+This route provides a webhook that Storyblok can call if a story gets published or deleted. This will invalidate the data in the Next.js cache that has been tagged with the story.
+
+```tsx
+// /app/admin/webhook/route.ts
+
+import { sb } from "@/storyblok";
+export const POST = sb.webhook({
+  validate: true,
+  secret: "MY-WEBHOOK-SECRET"
+});
+```
+
+## Additional data fetching
+
+Some of your blocks might need to fetch additional data, based on their own properties. This can be done with `dataResolvers`. A resolver receives the block data from the story and a context and can use both to asynchronously fetch additional data.
+
+Let's say we want to add a navigation menu to our pages that lists all stories in the root folder. First, we extend our `page` block and add a `menu` property:
+
+```tsx
+// /blocks/Page.tsx
+
+import { Block } from "storyblok-nextjs";
+import { Render } from "@/blocks";
+
+type Props = {
+  body: Block[];
+  menu: Array<{
+    title: string;
+    link: string;
+  }>
+};
+
+export default function Page({ body, menu }: Props) {
+  return (
+    <div>
+      <div>
+        {menu.map((item, i) => (
+          <a key={i} href={link}>{title}</a>
+        )}
+      </div>
+      <Render.List blocks={body} />
+    </div>
+  );
 }
+```
+
+With the new property in place, we can now configure a data resolver to populate it:
+
+```ts
+// /storyblok.ts
+
+import { StoryblokNext } from "storyblok-nextjs";
+
+export const sb = new StoryblokNext({
+  dataResolvers: {
+    async page(props, { loader }) {
+      const rootStories = await loader.getStories({
+        level: 1,
+      });
+      return {
+        menu: rootStories.map((s) => ({
+          title: s.name,
+          link: s.public_url!,
+        })),
+      };
+    },
+  },
+});
 ```
 
 ## Image Optimization
@@ -120,64 +291,5 @@ import { StoryblokImage } from "storyblok-nextjs";
 
 export function Hero({ image }) {
   return <StoryblokImage {...image} />;
-}
-```
-
-## Data Fetching for Bloks
-
-Some of your bloks might need to fetch additional data, based on their own properties. This can be done with `Resolvers`. A resolver receives the blok
-data from the story and a context and can use both to asynchronously fetch additional data.
-
-```ts
-import { bloks } from "@/components/bloks";
-
-export const resolvers: Resolvers<typeof bloks> = {
-  async MyBlok(data, context) {
-    // fetch additional data
-  },
-  async AnotherBlock(data, context) {
-    // fetch additional data
-  },
-};
-```
-
-You can then call `resolveData()` which will merge the resolved data into the given story.
-
-```ts
-await resolveData(story, resolvers, context);
-```
-
-## Cache Invalidation
-
-Create a webhook that Storyblok can call if a story gets published or deleted. This will invalidate the data in the Next.js cache that has been tagged with the story.
-
-```ts
-// app/webhooks/[token]/route.ts
-import { invalidate } from "storyblok-nextjs";
-import { NextRequest } from "next/server";
-import { sbClient } from "@/lib/storyblok";
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { token: string } }
-) {
-  const { token } = params;
-  const req = await request.json();
-  await invalidate(req, token, sbClient);
-  return Response.json({ ok: true });
-}
-```
-
-## Rendering the Admin UI
-
-Use the `AdminUI` component to render the Storyblok interface locally.
-This allows us to use the visual editor without https during development:
-
-```tsx
-// app/admin/page.tsx
-import { AdminUI } from "storyblok-nextjs";
-
-export default async function Page() {
-  return <AdminUI />;
 }
 ```

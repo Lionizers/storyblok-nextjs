@@ -1,10 +1,10 @@
 import { is } from "type-assurance";
 
 import {
+  extendUrl,
   getDocLinkStoryPath,
   getStoryLinkPath,
   getStoryPath,
-  joinPath,
 } from "./helpers";
 import {
   isRichTextStoryLink,
@@ -15,27 +15,35 @@ import {
   Story,
 } from "./storyblok-types";
 
-export function rewriteLinks(value: unknown, prefix: string) {
+export function rewriteLinks(
+  prefix: string | undefined,
+  params: URLSearchParams | undefined,
+  value: unknown
+) {
   if (is(value, [])) {
-    value.forEach((v) => rewriteLinks(v, prefix));
+    value.forEach((v) => rewriteLinks(prefix, params, v));
   } else if (is(value, {})) {
-    rewriteLink(value, prefix);
-    Object.values(value).forEach((v) => rewriteLinks(v, prefix));
+    rewriteLink(prefix, params, value);
+    Object.values(value).forEach((v) => rewriteLinks(prefix, params, v));
   }
 }
 
-export function rewriteLink(value: unknown, prefix: string) {
+export function rewriteLink(
+  prefix: string | undefined,
+  params: URLSearchParams | undefined,
+  value: unknown
+) {
   if (isStoryLink(value)) {
     const path = getStoryLinkPath(value);
-    if (path) value.public_url = joinPath("/", prefix, path);
+    if (path) value.public_url = extendUrl(path, prefix, params);
   } else if (isRichTextStoryLink(value)) {
-    value.attrs.href = joinPath(
-      "/",
+    value.attrs.href = extendUrl(
+      getDocLinkStoryPath(value.attrs.story),
       prefix,
-      getDocLinkStoryPath(value.attrs.story)
+      params
     );
   } else if (isStory(value)) {
-    value.public_url = joinPath("/", prefix, getStoryPath(value as Story));
+    rewriteStoryLink(prefix, params, value as Story);
   } else if (isUrlLink(value)) {
     value.public_url = value.url;
   } else if (isEmailLink(value)) {
@@ -43,7 +51,11 @@ export function rewriteLink(value: unknown, prefix: string) {
   }
 }
 
-export function rewriteStoryLink(value: Story, prefix: string) {
-  value.public_url = joinPath("/", prefix, getStoryPath(value));
+export function rewriteStoryLink(
+  prefix: string | undefined,
+  params: URLSearchParams | undefined,
+  value: Story
+) {
+  value.public_url = extendUrl(getStoryPath(value), prefix, params);
   return value as Story & { public_url: string };
 }

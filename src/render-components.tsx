@@ -1,8 +1,9 @@
 import { cloneElement, FunctionComponent, isValidElement } from "react";
 import { ErrorBox } from "./error-box";
-import { Block } from "./storyblok-types";
+import { Block, Story } from "./storyblok-types";
 import { Components } from "./types";
 import { createRichTextComponent } from "./richtext";
+import { useStoryblok } from "./hooks";
 
 const clickToEdit = process.env.NODE_ENV !== "development";
 if (!clickToEdit) {
@@ -51,12 +52,12 @@ export function visualEditorProps(block: Block) {
   return block._editable ? editableDataAttrs(block._editable) : undefined;
 }
 
-export function createComponents(blocks: Components) {
+export function createRenderComponents(blocks: Components) {
   const components: Components = Object.fromEntries(
     Object.entries(blocks).map(([type, comp]) => [type, wrapBlok(comp)])
   );
 
-  function Block(props: Block & Record<string, unknown>) {
+  function One(props: Block & Record<string, unknown>) {
     if (!props.component) {
       return (
         <ErrorBox title="Invalid blok">
@@ -77,9 +78,7 @@ export function createComponents(blocks: Components) {
     return <Component {...props} />;
   }
 
-  function Blocks(
-    props: { blocks: ReadonlyArray<Block> } & Record<string, any>
-  ) {
+  function List(props: { blocks: ReadonlyArray<Block> } & Record<string, any>) {
     const { blocks, _editable, ...defaults } = props;
     const overrides = _editable === false ? { _editable: "" } : {};
     if (blocks && !Array.isArray(blocks)) {
@@ -87,7 +86,7 @@ export function createComponents(blocks: Components) {
       return [];
     }
     return blocks?.map((blok, i) => (
-      <Block
+      <One
         key={blok._uid ?? i}
         _index={i}
         _total={blocks.length}
@@ -98,13 +97,14 @@ export function createComponents(blocks: Components) {
     ));
   }
 
-  const RichText = createRichTextComponent(Block);
+  function LivePreview({ story }: { story: Story }) {
+    const previewStory = useStoryblok(story);
+    return <One {...previewStory.content} />;
+  }
 
-  return { Block, Blocks, RichText };
+  const RichText = createRichTextComponent(One);
+
+  return { One, List, LivePreview, RichText };
 }
 
-type sb = ReturnType<typeof createComponents>;
-
-export type BlockComponent = sb["Block"];
-export type BlocksComponent = sb["Blocks"];
-export type RichTextComponent = sb["RichText"];
+export type RenderComponerents = ReturnType<typeof createRenderComponents>;

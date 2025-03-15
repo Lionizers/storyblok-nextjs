@@ -1,6 +1,5 @@
 ///<reference types="next/types/global" />
 import StoryblokClient, { ISbStoriesParams } from "storyblok-js-client";
-import { startTimer } from ".";
 import { getIndexTag, getPageTag } from "./tags";
 
 export function createStoryblokClient(publicToken?: string) {
@@ -58,13 +57,10 @@ export function createStoryblokClient(publicToken?: string) {
       // Remove the cv parameter (content version) so that we always get the
       // latest version.
       url.searchParams.delete("cv");
-
-      const logTime = startTimer(`${url} ${JSON.stringify(next)}`);
       const res = await fetch(url, { ...init, next });
       if (!res.ok) {
         console.warn(`Storyblok API response status ${res.status}`);
       }
-      logTime();
       return res;
     },
   });

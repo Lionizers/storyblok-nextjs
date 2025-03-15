@@ -201,11 +201,23 @@ const richTextBlockSchema = {
 };
 export const isRichTextBlock = typeGuard(richTextBlockSchema);
 
-type ExtendedStory = {
+export interface ExtendedStory {
   public_url?: string;
   public_url_prefix?: string;
+  preview_params?: string;
   resolved_data?: Record<string, any>;
-};
+}
+
+export interface StoryQueryParams {
+  version?: "draft" | "published";
+  resolve_level?: number;
+  resolve_links?: "link" | "url" | "story" | "0" | "1";
+  resolve_links_level?: 1 | 2;
+  resolve_relations?: string | string[];
+  from_release?: string;
+  language?: string;
+  fallback_lang?: string;
+}
 
 export type StoriesParams = ISbStoriesParams;
 export type StoryParams = ISbStoryParams;

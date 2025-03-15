@@ -1,58 +1,42 @@
 import { StoryblokClient } from "@storyblok/react";
 import { createStoryblokClient } from "./client";
-import {
-  isApiError,
-  StoriesParams,
-  Story,
-  StoryParams,
-} from "./storyblok-types";
-import { rewriteLinks } from "./rewrite-links";
-import { resolveData } from "./resolve-data";
-import { Components, PageParams, PageProps, Resolvers } from "./types";
-import {
-  BlockComponent,
-  BlocksComponent,
-  RichTextComponent,
-  createComponents,
-} from "./components";
+import { StoriesParams, StoryQueryParams } from "./storyblok-types";
+import { Components, PageProps, Resolvers } from "./types";
 import { AdminUI } from "./admin-ui";
-import { ClientPage } from "./client-page";
-import { NextRequest } from "next/server";
 import { joinPath } from "./helpers";
-import {
-  createSlugToken,
-  validatePreviewParams,
-  validateSlugToken,
-} from "./preview";
+import { validatePreviewParams } from "./preview";
+import { ComponentType } from "react";
+import { redirect } from "next/navigation";
+import { RenderComponerents } from "./render-components";
+import { StoryLoader, StoryLoaderOptions } from "./story-loader";
+import { NextRequest } from "next/server";
+import { invalidate, handleWebhookRequest } from "./cache";
 
 export class StoryblokNext<BlokTypes extends Components> {
   previewToken: string;
+  previewPath: string;
   client: StoryblokClient;
   rootSlug: string;
   defaultLanguage: string | undefined;
-  defaultStoryParams: StoryParams;
+  defaultStoryQueryParams: StoryQueryParams;
   dataResolvers: Resolvers<BlokTypes>;
-
-  Block: BlockComponent;
-  Blocks: BlocksComponent;
-  RichText: RichTextComponent;
 
   constructor({
     previewToken,
-    blocks,
+    previewPath = "/preview",
     dataResolvers,
     defaultLanguage,
     rootSlug = "home",
-    defaultStoryParams = {
+    defaultStoryQueryParams = {
       resolve_links: "url",
     },
   }: {
-    blocks: Components;
     dataResolvers: Resolvers<BlokTypes>;
     previewToken?: string;
+    previewPath?: string;
     defaultLanguage?: string | undefined;
     rootSlug?: string;
-    defaultStoryParams?: StoriesParams;
+    defaultStoryQueryParams?: StoriesParams;
   }) {
     if (!previewToken) {
       previewToken = process.env.STORYBLOK_PREVIEW_TOKEN;
@@ -63,26 +47,56 @@ export class StoryblokNext<BlokTypes extends Components> {
       }
     }
     this.previewToken = previewToken;
+    this.previewPath = joinPath("/", previewPath, "/");
     this.client = createStoryblokClient(this.previewToken);
     this.rootSlug = rootSlug;
     this.dataResolvers = dataResolvers;
     this.defaultLanguage = defaultLanguage;
-    this.defaultStoryParams = defaultStoryParams;
+    this.defaultStoryQueryParams = defaultStoryQueryParams;
+  }
 
-    const sb = createComponents(blocks);
-    this.Block = sb.Block;
-    this.Blocks = sb.Blocks;
-    this.RichText = sb.RichText;
+  isRootSlug(slug: string[]) {
+    return slug.length === 1 && slug[0] === this.rootSlug;
+  }
+
+  async createLoader(props: PageProps, preview = false): Promise<StoryLoader> {
+    const { slug, lang } = await props.params;
+    const options: StoryLoaderOptions = {
+      pageSlug: slug?.join("/") ?? this.rootSlug,
+      client: this.client,
+      dataResolvers: this.dataResolvers,
+      defaults: {
+        ...this.defaultStoryQueryParams,
+        version: "published",
+        language: lang,
+      },
+    };
+    if (preview) {
+      const searchParams = await props.searchParams;
+      if (searchParams?._storyblok_published) {
+        const publicUrl = this.isRootSlug(slug) ? "/" : joinPath("/", ...slug);
+        redirect(publicUrl); // this throws
+      }
+      validatePreviewParams(searchParams, this.previewToken);
+      options.defaults.version = "draft";
+      options.publicUrlPrefix = this.previewPath;
+      options.previewParams =
+        searchParams && new URLSearchParams(searchParams as any);
+    }
+    return new StoryLoader(options);
   }
 
   /**
    * A Next.js page handler to load and render the published version of
    * a story based on the [slug] and optionally [lang] parameters.
    */
-  page = async ({ params }: PageProps) => {
-    const story = await this.getStory(await params);
-    return <this.Block {...story.content} />;
-  };
+  page(Render: RenderComponerents) {
+    return async (props: PageProps) => {
+      const loader = await this.createLoader(props);
+      const story = await loader.getPageStory();
+      return <Render.One {...story.content} />;
+    };
+  }
 
   /**
    * A Next.js page handler to load and render the draft version of
@@ -91,163 +105,47 @@ export class StoryblokNext<BlokTypes extends Components> {
    * The page is rendered fully client-side and includes the Storyblok Bridge
    * to allow visual editing (click-to-edit).
    */
-  previewPage = async ({ params }: PageProps) => {
-    const story = await this.getStory(await params);
-    return (
-      <ClientPage
-        story={story}
-        params={this.defaultStoryParams}
-        BlockComponent={this.Block}
-      />
-    );
-  };
-
-  /**
-   * A Next.js page handler to render the Storyblok Admin UI locally.
-   * This way, the Storyblok UI can be rendered without https during
-   * development. It will also directly jump to the space associated with the
-   * configured public token, thereby skipping the space selection screen.
-   * By including custom CSS on that page, the login screen can be branded.
-   */
-  adminPage = async () => {
-    const { data } = await this.client.get("cdn/spaces/me");
-    return <AdminUI space={data.space.id} previewPath="/preview?slug=" />;
-  };
-
-  /**
-   * A Next.js route handler for the visual editor.
-   * Use it by setting the preview URL in Storyblok to:
-   * `https://example.com/preview?token=<PREVIEW_TOKEN>&slug=`
-   *
-   * This handler will try to fetch the story for the given slug using the
-   * provided access token. Upon success a redirect to the actual story is sent.
-   */
-  previewRoute = async (request: NextRequest) => {
-    try {
-      const { searchParams } = request.nextUrl;
-      validatePreviewParams(searchParams, this.previewToken);
-      const location = await this.getPreviewUrl(searchParams);
-      return new Response(null, {
-        status: 302,
-        headers: {
-          location,
-        },
-      });
-    } catch (err) {
-      // Could not fetch the story ...
-      console.log(err);
-      if (isApiError(err)) {
-        return new Response(err.message, { status: err.status });
-      }
-      return new Response("Forbidden", { status: 403 });
-    }
-  };
-
-  /**
-   * Used internally by the previewRoute handler to process the query
-   * parameters passed by Storyblok.
-   */
-  protected getPageParamsFromVisualEditor(params: URLSearchParams): PageParams {
-    const path = params.get("slug") ?? this.rootSlug;
-    const lang = params.get("_storyblok_lang") ?? this.defaultLanguage;
-    const slug = path.split("/");
-    if (slug[0] === lang) slug.shift();
-    const token = createSlugToken(slug, this.previewToken);
-    return {
-      token,
-      lang,
-      slug,
+  previewPage(ClientPage: ComponentType<any>) {
+    return async (props: PageProps) => {
+      const loader = await this.createLoader(props, true);
+      const story = await loader.getPageStory();
+      return <ClientPage story={story} params={this.defaultStoryQueryParams} />;
     };
   }
 
   /**
-   * Used internally by the previewRoute handler to construct the target preview URL.
+   * A Next.js page handler to render the Storyblok Admin UI locally. This way,
+   * the Storyblok UI can be rendered without https during development.
+   * Optionally, it will skip the space selection screen and jump  directly
+   * to the space associated with the configured token.
+   *
+   * NOTE: By including custom CSS on that page, the login screen can be branded.
    */
-  protected async getPreviewUrl(searchParams: URLSearchParams) {
-    const params = this.getPageParamsFromVisualEditor(searchParams);
-    const story = await this.getStory(params);
-
-    // We must preserve the original parameters as they are required by the visual editor
-    // https://www.storyblok.com/docs/guide/essentials/visual-editor#additional-query-params
-    searchParams.delete("slug");
-    searchParams.delete("token");
-    const query = `?${searchParams.toString()}`;
-    return joinPath(this.getPrefix(params), story.full_slug) + query;
-  }
-
-  /**
-   * Converts the configured default lang into the `default` keyword.
-   * All other strings are returned verbatim.
-   */
-  protected langToDefaultKeyword(lang?: string) {
-    return lang === this.defaultLanguage ? "default" : lang;
-  }
-
-  /**
-   * Converts the `default` keyword into the configured default lang.
-   * All other strings are returned verbatim.
-   */
-  protected defaultKeywordToLang(lang?: string) {
-    return lang === "default" ? this.defaultLanguage : lang;
-  }
-
-  /**
-   * Returns the prefix to be added to all link URLs in a story based on
-   * the given PageParams.
-   */
-  protected getPrefix({ lang, token }: PageParams) {
-    let path = "";
-    if (this.defaultLanguage) {
-      // The project uses i18n URLs, append the language to the prefix
-      path = this.defaultKeywordToLang(lang) ?? this.defaultLanguage;
+  adminPage(opts: { skipSpaces?: boolean } = {}) {
+    const { skipSpaces = true } = opts;
+    if (skipSpaces) {
+      return async () => {
+        const { data } = await this.client.get("cdn/spaces/me");
+        return <AdminUI space={data.space.id} previewPath={this.previewPath} />;
+      };
     }
-    return this.getPreviewPath(path, token);
+    return () => {
+      return <AdminUI previewPath={this.previewPath} />;
+    };
   }
 
-  /**
-   * Prefixes the given path with `/preview/${token}`.
-   * If no token is provided, the path is returned verbatim.
-   */
-  protected getPreviewPath(path: string, token?: string) {
-    return token ? joinPath("/preview", token, path) : path;
-  }
-
-  async getStory(params: PageParams) {
-    const { slug = [this.rootSlug] } = params;
+  webhook(opts: { validate?: boolean; secret?: string } = {}) {
     const {
-      data: { story },
-    } = await this.client.getStory(slug.join("/"), {
-      ...this.storyParamsForPage(params),
-      ...this.defaultStoryParams,
-    });
-    rewriteLinks(story, this.getPrefix(params));
-    await resolveData(story, this.dataResolvers, {
-      prefix: this.getPrefix(params),
-      locale: params.lang,
-      params,
-      story,
-      client: this.client,
-      getStories: this.getStories.bind(this, params),
-    });
-    return story as Story;
-  }
-
-  async getStories(pageParams: PageParams, storyParams?: StoriesParams) {
-    const { data } = await this.client.getStories({
-      ...this.storyParamsForPage(pageParams),
-      ...storyParams,
-    });
-    const prefix = this.getPrefix(pageParams);
-    data.stories.forEach((story) => rewriteLinks(story, prefix));
-    return data.stories as Story[];
-  }
-
-  storyParamsForPage(params: PageParams): StoryParams {
-    const { lang, token, slug } = params;
-    if (token) validateSlugToken(token, slug, this.previewToken);
-    return {
-      language: lang && this.langToDefaultKeyword(lang),
-      version: token ? "draft" : "published",
+      validate = process.env.NODE_ENV === "production",
+      secret = process.env.STORYBLOK_WEBHOOK_SECRET,
+    } = opts;
+    if (validate && !secret) {
+      throw new Error(
+        `Specify a secret or set the STORYBLOK_WEBHOOK_SECRET env var.`
+      );
+    }
+    return async (req: NextRequest) => {
+      return handleWebhookRequest(req, this.client, secret);
     };
   }
 }
