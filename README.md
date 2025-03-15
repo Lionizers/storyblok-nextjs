@@ -14,7 +14,13 @@ Modern Next.js integration for Storyblok
 The easiest way to get started is by using this command:
 
 ```bash
-npx create-next-app@latest --example https://github.com/lionizers/storyblok-nextjs-example [your-project-name]
+npx create-next-app@latest --example https://github.com/lionizers/storyblok-nextjs-example
+```
+
+Create a `.env.local` in the root directory of the newly created project and add the following line:
+
+```
+STORYBLOK_PREVIEW_TOKEN=<YOUR-PREVIEW-TOKEN>
 ```
 
 ## Manual Setup
