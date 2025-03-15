@@ -4,20 +4,26 @@ Modern Next.js integration for Storyblok
 
 ## Features
 
-- 🚀 **React Server Components Support**: Built with Next.js App Router in mind
+- 🚀 **React Server Components Support**: Built for Next.js App Router
 - 🔄 **Live Preview**: Real-time preview with automatic updates via Storyblok Bridge
 - 🗄️ **Smart Caching**: Automatic cache invalidation using Next.js cache tags
-- 🖼️ **Image Optimization**: Built-in support for Next.js Image component
-- 🔗 **Link Handling**: Automatic link resolution and preview mode support
-- 🎨 **Visual Editor**: Seamless integration with Storyblok's Visual Editor
+- 🖼️ **Image Optimization**: Seamlessly use next/image with Stroyblok assets
 
-## Installation
+## Quick Start
+
+The easiest way to get started is by using this command:
+
+```bash
+npx create-next-app@latest --example https://github.com/lionizers/storyblok-nextjs-example [your-project-name]
+```
+
+## Manual Setup
+
+Alternatively, you can follow this step-by-step guide to set things up manually. Start by installing the package:
 
 ```bash
 npm install storyblok-nextjs
 ```
-
-## Quick Start
 
 ## 1. Create React components for your blocks
 
