@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 import { RenderComponerents } from "./render-components";
 import { StoryLoader, StoryLoaderOptions } from "./story-loader";
 import { NextRequest } from "next/server";
-import { invalidate, handleWebhookRequest } from "./cache";
+import { handleWebhookRequest } from "./cache";
 
 export class StoryblokNext<BlokTypes extends Components> {
   previewToken: string;
@@ -134,16 +134,8 @@ export class StoryblokNext<BlokTypes extends Components> {
     };
   }
 
-  webhook(opts: { validate?: boolean; secret?: string } = {}) {
-    const {
-      validate = process.env.NODE_ENV === "production",
-      secret = process.env.STORYBLOK_WEBHOOK_SECRET,
-    } = opts;
-    if (validate && !secret) {
-      throw new Error(
-        `Specify a secret or set the STORYBLOK_WEBHOOK_SECRET env var.`
-      );
-    }
+  webhook(opts: { secret?: string } = {}) {
+    const { secret = process.env.STORYBLOK_WEBHOOK_SECRET } = opts;
     return async (req: NextRequest) => {
       return handleWebhookRequest(req, this.client, secret);
     };
