@@ -23,8 +23,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "test": "vitest",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "storyblok-rich-text-react-renderer": "^2.9.2",
