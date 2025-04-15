@@ -5,12 +5,8 @@ import { Components } from "./types";
 import { createRichTextComponent } from "./richtext";
 import { useStoryblok } from "./hooks";
 
-const clickToEdit = process.env.NODE_ENV !== "development";
-if (!clickToEdit) {
-  console.info(
-    "Click-to-edit is disabled in development mode as this would break fast-refresh."
-  );
-}
+// Enable clickToEdit only inside iframes
+const clickToEdit = typeof window !== "undefined" && window.top !== window;
 
 function wrapBlok(comp: FunctionComponent) {
   if (clickToEdit && typeof comp === "function") {
