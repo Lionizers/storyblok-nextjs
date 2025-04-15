@@ -14,18 +14,21 @@ type AssetImageProps = {
   className?: string;
   aspect?: number;
   sizes?: string;
+  fill?: boolean;
 };
 
 export function AssetImage({
   asset,
   aspect,
+  fill,
   sizes,
   ...props
 }: AssetImageProps) {
   if (!asset?.filename) return null;
   return (
     <StoryblokImage
-      {...getImageProps(asset, { aspect })}
+      {...getImageProps(asset, { aspect, fill })}
+      fill={fill}
       sizes={sizes}
       {...props}
     />

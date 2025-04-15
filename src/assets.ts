@@ -60,6 +60,7 @@ function scale(orig: Dimensions, target: Dimensions | number | undefined) {
 
 type ImageOpts = Dimensions & {
   aspect?: number;
+  fill?: boolean;
   next?: boolean;
   fallback?: any; //eslint-disable-line @typescript-eslint/no-explicit-any
 };
@@ -68,11 +69,17 @@ export function getImageProps(asset: Asset, opts?: ImageOpts) {
   const { width, height, unoptimized, ...props } = getAssetDimensions(
     asset.filename
   );
-  return {
+  const basicProps = {
     src: encodeAspect(asset.filename, opts),
     alt: asset.alt || asset.name || "",
     unoptimized: opts?.next === false ? undefined : unoptimized,
     ...props,
+  };
+  if (opts?.fill) {
+    return basicProps;
+  }
+  return {
+    ...basicProps,
     ...scale({ width, height }, opts?.aspect ?? opts),
   };
 }
