@@ -1,5 +1,7 @@
+import { notFound } from "next/navigation";
 import { StoryblokClient } from "@storyblok/react";
 import {
+  isApiError,
   StoriesParams,
   Story,
   StoryParams,
@@ -46,7 +48,15 @@ export class StoryLoader {
   }
 
   async getPageStory() {
-    return this.getStory(this.pageSlug);
+    try {
+      return await this.getStory(this.pageSlug);
+    } catch (err: unknown) {
+      if (isApiError(err) && err.status === 404) {
+        notFound();
+      } else {
+        throw err;
+      }
+    }
   }
 
   async getStory(slug: string, storyParams?: StoryParams) {
