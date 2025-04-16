@@ -18,7 +18,7 @@ export function validatePreviewParams(
   if (!token) {
     throw new Error("Missing token.");
   }
-  if (maxAgeSeconds > 0) {
+  if (maxAgeSeconds > 0 && process.env.NODE_ENV !== "development") {
     const t = typeof timestamp === "string" ? parseInt(timestamp) : 0;
     if (isNaN(t) || t < Math.floor(Date.now() / 1000) - maxAgeSeconds) {
       throw new Error("Token has expired.");
