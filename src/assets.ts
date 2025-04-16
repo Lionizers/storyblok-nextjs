@@ -24,7 +24,10 @@ export function getAssetDimensions(src: string) {
       unoptimized: src.includes(".svg"),
     };
   }
-  return {};
+  return {
+    width: 800,
+    height: 600,
+  };
 }
 
 function scale(orig: Dimensions, target: Dimensions | number | undefined) {
