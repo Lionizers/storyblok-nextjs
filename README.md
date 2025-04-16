@@ -276,8 +276,9 @@ With the new property in place, we can now configure a data resolver to populate
 // /storyblok.ts
 
 import { StoryblokNext } from "storyblok-nextjs";
+import { blocks } from "@/blocks";
 
-export const sb = new StoryblokNext({
+export const sb = new StoryblokNext<typeof blocks>({
   dataResolvers: {
     async page(props, { loader }) {
       const rootStories = await loader.getStories({
