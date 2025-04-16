@@ -14,5 +14,7 @@ export function storyblokImageLoader(props: ImageLoaderProps) {
   const aspect = url.searchParams.get("aspect");
   const h = aspect ? Math.round(w / parseFloat(aspect)) : 0;
 
-  return `${url.origin}${url.pathname}/m/${w}x${h}${quality ? `/filters:quality(${quality})` : ""}`;
+  return `${url.origin}${url.pathname}/m/${w}x${h}/smart${
+    quality ? `/filters:quality(${quality})` : ""
+  }`;
 }
