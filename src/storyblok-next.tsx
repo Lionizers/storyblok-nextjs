@@ -7,7 +7,7 @@ import { joinPath } from "./helpers";
 import { validatePreviewParams } from "./preview";
 import { ComponentType } from "react";
 import { redirect } from "next/navigation";
-import { RenderComponerents } from "./render-components";
+import { RenderComponents } from "./render-components";
 import { StoryLoader, StoryLoaderOptions } from "./story-loader";
 import { NextRequest } from "next/server";
 import { handleWebhookRequest } from "./cache";
@@ -90,7 +90,7 @@ export class StoryblokNext<BlokTypes extends Components> {
    * A Next.js page handler to load and render the published version of
    * a story based on the [slug] and optionally [lang] parameters.
    */
-  page(Render: RenderComponerents) {
+  page(Render: RenderComponents) {
     return async (props: PageProps) => {
       const loader = await this.createLoader(props);
       const story = await loader.getPageStory();

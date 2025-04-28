@@ -1,6 +1,8 @@
 import { ComponentPropsWithoutRef, FunctionComponent } from "react";
-import { Story } from "./storyblok-types";
+import { RichText, Story } from "./storyblok-types";
 import { StoryLoader } from "./story-loader";
+import { RenderOptions } from "storyblok-rich-text-react-renderer";
+export { RenderOptions } from "storyblok-rich-text-react-renderer";
 
 export interface PageParams {
   slug: string[];
@@ -24,6 +26,13 @@ export type Components = Record<string, FunctionComponent<any>>;
 
 export type Resolvers<C extends Components> = {
   [K in keyof C]?: Resolver<C[K]>;
+};
+
+export type RichTextOptions = {
+  customize?: (defaultOptions: RenderOptions) => RenderOptions;
+  hoistImages?: boolean;
+  inlineComponents?: boolean | RegExp;
+  transform?: (node: RichText) => RichText;
 };
 
 type Resolver<C extends FunctionComponent> = (

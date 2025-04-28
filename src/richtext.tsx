@@ -19,6 +19,7 @@ import {
 import { StoryblokImage } from "./storyblok-image";
 import { getAssetDimensions } from "./assets";
 import Link from "next/link";
+import { RichTextOptions } from "./types";
 
 function smartText(text: string) {
   return text
@@ -31,7 +32,7 @@ function smartText(text: string) {
  * We lift them up one level so we can render them as figures or
  * target them in subgrid layouts.
  */
-function hoistImages(doc: RichTextNode): RichTextNode {
+function hoistImages(doc: RichText): RichText {
   return {
     ...doc,
     content: doc.content.flatMap((c) =>
@@ -61,10 +62,10 @@ function splitParagraph(p: Paragraph) {
   return split;
 }
 
-function isInlineComponent(blok: unknown) {
+function isInlineComponent(blok: unknown, pattern: RegExp = /inline/i) {
   return (
     isRichTextBlock(blok) &&
-    !!blok.attrs.body.find((c) => isBlock(c) && c.component.match(/inline/i))
+    !!blok.attrs.body.find((c) => isBlock(c) && c.component.match(pattern))
   );
 }
 
@@ -81,35 +82,60 @@ function stringToDoc(text: string | RichText): RichText {
 /**
  * Move inline components into the preceeding paragraph.
  */
-function inlineComponents(doc: RichTextNode): RichTextNode {
-  const content = [];
-  if (typeof doc === "string") {
-    content.push({ type: "paragraph", content: [{ type: "text", text: doc }] });
-  } else if (doc?.content) {
-    for (let i = 0; i < doc.content.length; i++) {
-      const c = doc.content[i];
-      const prev = content.at(-1);
-      if (isParagraph(prev) && isInlineComponent(c)) {
-        prev.content.push(c);
-        const next = doc.content[i + 1];
-        if (isParagraph(next)) {
-          prev.content.push(...next.content);
-          i++;
-        }
-      } else {
-        if (isParagraph(c)) {
-          content.push({ ...c, content: [...c.content] });
-        } else if (isBulletList(c)) {
-          content.push({ ...c, content: c.content.map(inlineComponents) });
+function inlineComponents(
+  doc: RichText,
+  pattern: RegExp | boolean = /inline/i
+): RichText {
+  // If pattern is false, don't apply the transformation
+  if (pattern === false) {
+    return doc;
+  }
+
+  const inline = (node: RichTextNode): RichTextNode => {
+    const content = [];
+    if (typeof node === "string") {
+      content.push({
+        type: "paragraph",
+        content: [{ type: "text", text: node }],
+      });
+    } else if (node?.content) {
+      for (let i = 0; i < node.content.length; i++) {
+        const c = node.content[i];
+        const prev = content.at(-1);
+        if (
+          isParagraph(prev) &&
+          isInlineComponent(c, pattern === true ? /inline/i : pattern)
+        ) {
+          prev.content.push(c);
+          const next = node.content[i + 1];
+          if (isParagraph(next)) {
+            prev.content.push(...next.content);
+            i++;
+          }
         } else {
-          content.push(c);
+          if (isParagraph(c)) {
+            content.push({ ...c, content: [...c.content] });
+          } else if (isBulletList(c)) {
+            // Use the same pattern for recursive calls
+            content.push({
+              ...c,
+              content: c.content.map(inline),
+            });
+          } else {
+            content.push(c);
+          }
         }
       }
     }
-  }
+    return {
+      ...node,
+      content,
+    };
+  };
+
   return {
-    ...doc,
-    content,
+    ...inline(doc),
+    type: "doc",
   };
 }
 
@@ -123,52 +149,74 @@ function renderImage(props: { src?: string; alt?: string; title?: string }) {
   return null;
 }
 
-export function createRichTextComponent(BlokComponent?: ComponentType<any>) {
+export function createRichTextComponent(
+  BlokComponent?: ComponentType<any>,
+  richTextOptions?: RichTextOptions
+) {
   return function RichText({ text }: { text?: RichText }) {
-    const options = useMemo<RenderOptions | undefined>(
-      () => ({
-        textResolver: smartText,
-        nodeResolvers: {
-          [NODE_IMAGE]: (_children, props) => {
-            if (props.title) {
-              return (
-                <figure>
-                  {renderImage(props)}
-                  <figcaption>{props.title}</figcaption>
-                </figure>
-              );
-            }
-            return renderImage(props);
-          },
-        },
-        markResolvers: {
-          // Ignore all text styles that might have ended in the richtext document
-          // instead of rendering a <span style={...}> node:
-          [MARK_TEXT_STYLE]: (children) => <>{children}</>,
-          [MARK_LINK]: (children, props) => {
-            const { href, linktype } = props;
-            if (href && linktype === "story") {
-              return <Link href={href}>{children}</Link>;
-            }
+    const defaultOptions: RenderOptions = {
+      textResolver: smartText,
+      nodeResolvers: {
+        [NODE_IMAGE]: (_children, props) => {
+          if (props.title) {
             return (
-              <a href={href} target="_blank">
-                {children}
-              </a>
+              <figure>
+                {renderImage(props)}
+                <figcaption>{props.title}</figcaption>
+              </figure>
             );
-          },
+          }
+          return renderImage(props);
         },
-        ...(BlokComponent && {
-          defaultBlokResolver: (name, props) => {
-            return (
-              <BlokComponent key={props._uid} component={name} {...props} />
-            );
-          },
-        }),
+      },
+      markResolvers: {
+        // Ignore all text styles that might have ended in the richtext document
+        // instead of rendering a <span style={...}> node:
+        [MARK_TEXT_STYLE]: (children) => <>{children}</>,
+        [MARK_LINK]: (children, props) => {
+          const { href, linktype } = props;
+          if (href && linktype === "story") {
+            return <Link href={href}>{children}</Link>;
+          }
+          return (
+            <a href={href} target="_blank">
+              {children}
+            </a>
+          );
+        },
+      },
+      ...(BlokComponent && {
+        defaultBlokResolver: (name, props) => {
+          return <BlokComponent key={props._uid} component={name} {...props} />;
+        },
       }),
-      [BlokComponent]
+    };
+
+    const options = useMemo<RenderOptions | undefined>(
+      () =>
+        richTextOptions?.customize
+          ? richTextOptions?.customize(defaultOptions)
+          : defaultOptions,
+      [BlokComponent, richTextOptions]
     );
+
     if (text) {
-      const doc = hoistImages(inlineComponents(stringToDoc(text)));
+      let doc = stringToDoc(text);
+
+      // Apply hoistImages if enabled (default: true)
+      const shouldHoistImages = richTextOptions?.hoistImages !== false;
+      if (shouldHoistImages) {
+        doc = hoistImages(doc);
+      }
+
+      // Apply inlineComponents transformation with the provided pattern or default
+      doc = inlineComponents(doc, richTextOptions?.inlineComponents ?? true);
+
+      // Apply custom transform function if provided
+      if (richTextOptions?.transform) {
+        doc = richTextOptions.transform(doc);
+      }
+
       return render(doc, options);
     }
   };

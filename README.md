@@ -131,6 +131,51 @@ export default function Teaser({ headline, text }: Props) {
 ```
 
 
+### 3.2 Customizing Rich Text Rendering Options
+
+You can customize the Rich Text rendering options by providing options to the `createRenderComponents` function:
+
+```typescript
+import { createRenderComponents, RichTextOptions } from "storyblok-nextjs";
+import { RenderOptions } from "storyblok-rich-text-react-renderer";
+
+const richTextOptions: RichTextOptions = {
+  // Customize the render options
+  customize: (defaultOptions: RenderOptions) => ({
+    ...defaultOptions,
+    // Add custom resolvers or modify existing ones
+    markResolvers: {
+      ...defaultOptions.markResolvers,
+      bold: (children) => <strong className="font-bold text-primary">{children}</strong>,
+    }
+  }),
+  
+  // Control document transformations
+  hoistImages: true, // Default: true - Lifts images out of paragraphs 
+  inlineComponents: /inline/i, // Default: /inline/i - Regex pattern to identify inline components
+  
+  // Add custom transformation function
+  transform: (node) => {
+    // Apply additional custom transformations to the rich text node
+    return node;
+  }
+};
+
+export const Render = createRenderComponents(blocks, richTextOptions);
+```
+
+#### Available Rich Text Options
+
+- **customize**: A function that takes the default render options and returns customized options
+- **hoistImages**: (boolean, default: `true`) - When true, images are lifted out of paragraphs
+- **inlineComponents**: (boolean | RegExp, default: `/inline/i`) - Identifies components that should be treated as inline elements
+  - `true`: Uses the default pattern `/inline/i`
+  - `false`: Disables inline component processing
+  - `RegExp`: Custom pattern to match component names against
+- **transform**: (function) - A custom function that takes a `RichText` document and returns a transformed one
+
+This allows you to customize how rich text is rendered throughout your application without having to modify the base components. See https://www.npmjs.com/package/storyblok-rich-text-react-renderer for details about the render options.
+
 ## 4. Create a `StoryblokNext` instance
 
 Next, we'll create an instance of `StoryblokNext`. It takes a couple of options that we will cover later. For now, all you need is a Storyblok preview token. If omitted, StoryblokNext will try to read it from the `STORYBLOK_PREVIEW_TOKEN` env variable.

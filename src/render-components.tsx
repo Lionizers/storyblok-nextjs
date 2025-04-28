@@ -1,7 +1,7 @@
 import { cloneElement, FunctionComponent, isValidElement } from "react";
 import { ErrorBox } from "./error-box";
 import { Block, Story } from "./storyblok-types";
-import { Components } from "./types";
+import { Components, RichTextOptions } from "./types";
 import { createRichTextComponent } from "./richtext";
 import { useStoryblok } from "./hooks";
 
@@ -48,7 +48,10 @@ export function visualEditorProps(block: Block) {
   return block._editable ? editableDataAttrs(block._editable) : undefined;
 }
 
-export function createRenderComponents(blocks: Components) {
+export function createRenderComponents(
+  blocks: Components,
+  richTextOptions?: RichTextOptions
+) {
   const components: Components = Object.fromEntries(
     Object.entries(blocks).map(([type, comp]) => [type, wrapBlok(comp)])
   );
@@ -98,9 +101,9 @@ export function createRenderComponents(blocks: Components) {
     return <One {...previewStory.content} />;
   }
 
-  const RichText = createRichTextComponent(One);
+  const RichText = createRichTextComponent(One, richTextOptions);
 
   return { One, List, LivePreview, RichText };
 }
 
-export type RenderComponerents = ReturnType<typeof createRenderComponents>;
+export type RenderComponents = ReturnType<typeof createRenderComponents>;
