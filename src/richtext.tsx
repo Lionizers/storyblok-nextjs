@@ -151,9 +151,15 @@ function renderImage(props: { src?: string; alt?: string; title?: string }) {
 
 export function createRichTextComponent(
   BlokComponent?: ComponentType<any>,
-  richTextOptions?: RichTextOptions
+  defaultRichTextOptions?: RichTextOptions
 ) {
-  return function RichText({ text }: { text?: RichText }) {
+  return function RichText({
+    text,
+    richTextOptions = defaultRichTextOptions,
+  }: {
+    text?: RichText;
+    richTextOptions?: RichTextOptions;
+  }) {
     const defaultOptions: RenderOptions = {
       textResolver: smartText,
       nodeResolvers: {
@@ -197,7 +203,7 @@ export function createRichTextComponent(
         richTextOptions?.customize
           ? richTextOptions?.customize(defaultOptions)
           : defaultOptions,
-      [BlokComponent, richTextOptions]
+      [BlokComponent, richTextOptions?.customize]
     );
 
     if (text) {

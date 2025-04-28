@@ -152,6 +152,10 @@ const richTextNodeSchema = { type: String, content: Array };
 export type RichTextNode = TypeFromSchema<typeof richTextNodeSchema>;
 export const isRichTextNode = typeGuard(richTextNodeSchema);
 
+const richTextTextSchema = { type: "text", text: String };
+export type RichTextText = TypeFromSchema<typeof richTextTextSchema>;
+export const isRichTextText = typeGuard(richTextTextSchema);
+
 export const isRichTextStoryLink = typeGuard({
   type: "link",
   attrs: {
