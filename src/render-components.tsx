@@ -4,6 +4,7 @@ import { Block, Story } from "./storyblok-types";
 import { Components, RichTextOptions } from "./types";
 import { createRichTextComponent } from "./richtext";
 import { useStoryblok } from "./hooks";
+import { ISbStoryParams } from "@storyblok/react";
 
 // Enable clickToEdit only inside iframes
 const clickToEdit = typeof window !== "undefined" && window.top !== window;
@@ -96,8 +97,14 @@ export function createRenderComponents(
     ));
   }
 
-  function LivePreview({ story }: { story: Story }) {
-    const previewStory = useStoryblok(story);
+  function LivePreview({
+    story,
+    params,
+  }: {
+    story: Story;
+    params: ISbStoryParams;
+  }) {
+    const previewStory = useStoryblok(story, params);
     return <One {...previewStory.content} />;
   }
 
