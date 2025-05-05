@@ -16,6 +16,7 @@ export interface StoryLoaderOptions {
   client: StoryblokClient;
   defaults: StoryQueryParams;
   dataResolvers: Resolvers<any>;
+  hiddenPagePattern: RegExp;
   publicUrlPrefix?: string;
   previewParams?: URLSearchParams;
 }
@@ -27,6 +28,7 @@ export class StoryLoader {
   protected dataResolvers: Resolvers<any>;
   protected publicUrlPrefix: string | undefined;
   protected previewParams: URLSearchParams | undefined;
+  protected hiddenPagePattern: RegExp;
 
   rewriteLinks: (value: unknown) => void;
 
@@ -37,6 +39,7 @@ export class StoryLoader {
     dataResolvers,
     publicUrlPrefix,
     previewParams,
+    hiddenPagePattern,
   }: StoryLoaderOptions) {
     this.pageSlug = pageSlug;
     this.client = client;
@@ -44,11 +47,15 @@ export class StoryLoader {
     this.dataResolvers = dataResolvers;
     this.publicUrlPrefix = publicUrlPrefix;
     this.previewParams = previewParams;
+    this.hiddenPagePattern = hiddenPagePattern;
     this.rewriteLinks = rewriteLinks.bind(null, publicUrlPrefix, previewParams);
   }
 
   async getPageStory() {
     try {
+      if (this.hiddenPagePattern.test(this.pageSlug)) {
+        notFound();
+      }
       return await this.getStory(this.pageSlug);
     } catch (err: unknown) {
       if (isApiError(err) && err.status === 404) {
@@ -64,8 +71,9 @@ export class StoryLoader {
       ...this.defaults,
       ...storyParams,
     });
-
+    if (!data.story) notFound();
     const story = data.story as Story;
+
     this.rewriteLinks(story);
 
     const resolvedData = {};

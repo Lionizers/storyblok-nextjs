@@ -20,12 +20,14 @@ export class StoryblokNext<BlokTypes extends Components> {
   defaultLanguage: string | undefined;
   defaultStoryQueryParams: StoryQueryParams;
   dataResolvers: Resolvers<BlokTypes>;
+  hiddenPagePattern: RegExp;
 
   constructor({
     previewToken,
     previewPath = "/preview",
     dataResolvers,
     defaultLanguage,
+    hiddenPagePattern = /^_/,
     rootSlug = "home",
     defaultStoryQueryParams = {
       resolve_links: "url",
@@ -35,6 +37,7 @@ export class StoryblokNext<BlokTypes extends Components> {
     previewToken?: string;
     previewPath?: string;
     defaultLanguage?: string | undefined;
+    hiddenPagePattern?: RegExp;
     rootSlug?: string;
     defaultStoryQueryParams?: StoriesParams;
   }) {
@@ -52,6 +55,7 @@ export class StoryblokNext<BlokTypes extends Components> {
     this.rootSlug = rootSlug;
     this.dataResolvers = dataResolvers;
     this.defaultLanguage = defaultLanguage;
+    this.hiddenPagePattern = hiddenPagePattern;
     this.defaultStoryQueryParams = defaultStoryQueryParams;
   }
 
@@ -60,11 +64,12 @@ export class StoryblokNext<BlokTypes extends Components> {
   }
 
   async createLoader(props: PageProps, preview = false): Promise<StoryLoader> {
-    const { slug, lang } = await props.params;
+    const { slug = [], lang } = await props.params;
     const options: StoryLoaderOptions = {
-      pageSlug: slug?.join("/") ?? this.rootSlug,
+      pageSlug: slug.join("/") ?? this.rootSlug,
       client: this.client,
       dataResolvers: this.dataResolvers,
+      hiddenPagePattern: this.hiddenPagePattern,
       defaults: {
         ...this.defaultStoryQueryParams,
         version: "published",
@@ -94,6 +99,26 @@ export class StoryblokNext<BlokTypes extends Components> {
     return async (props: PageProps) => {
       const loader = await this.createLoader(props);
       const story = await loader.getPageStory();
+      return <Render.One {...story.content} />;
+    };
+  }
+
+  /**
+   * A Next.js page handler to load and render a story by its type rather than
+   * its slug. This can be used to render pages that only exist once.
+   */
+  singletonPage(
+    type: keyof BlokTypes,
+    Render: RenderComponents,
+    preview?: boolean
+  ) {
+    return async (props: PageProps) => {
+      const loader = await this.createLoader(props, preview);
+      const [story] = await loader.getStories({
+        content_type: type as string,
+        per_page: 1,
+      });
+      if (!story) return null;
       return <Render.One {...story.content} />;
     };
   }

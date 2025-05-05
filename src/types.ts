@@ -5,7 +5,7 @@ import { RenderOptions } from "storyblok-rich-text-react-renderer";
 export { RenderOptions } from "storyblok-rich-text-react-renderer";
 
 export interface PageParams {
-  slug: string[];
+  slug?: string[];
   lang?: string;
 }
 
