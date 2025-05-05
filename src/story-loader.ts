@@ -75,7 +75,11 @@ export class StoryLoader {
     const story = data.story as Story;
 
     this.rewriteLinks(story);
+    this.resolveData(story);
+    return story;
+  }
 
+  async resolveData(story: Story) {
     const resolvedData = {};
     const queue: Promise<unknown>[] = [];
     const context: ResolverContext = {
@@ -91,8 +95,6 @@ export class StoryLoader {
     story.resolved_data = resolvedData;
     story.public_url_prefix = this.publicUrlPrefix;
     story.preview_params = this.previewParams?.toString();
-
-    return story as Story;
   }
 
   async getStories(storyParams?: StoriesParams) {

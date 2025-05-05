@@ -119,6 +119,7 @@ export class StoryblokNext<BlokTypes extends Components> {
         per_page: 1,
       });
       if (!story) return null;
+      await loader.resolveData(story);
       return <Render.One {...story.content} />;
     };
   }
