@@ -1,5 +1,4 @@
 import { ISbStoryParams } from "@storyblok/react";
-import { Asset } from "next/font/google";
 import { ISbStoryData, ISbStoriesParams } from "storyblok-js-client";
 import { optional, TypeFromSchema, typeGuard, union } from "type-assurance";
 
