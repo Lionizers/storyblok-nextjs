@@ -1,9 +1,9 @@
 import { StoryblokClient } from "@storyblok/react";
 import { createStoryblokClient } from "./client";
-import { StoriesParams, StoryQueryParams } from "./storyblok-types";
+import { StoriesParams, Story, StoryQueryParams } from "./storyblok-types";
 import { Components, PageProps, Resolvers } from "./types";
 import { AdminUI } from "./admin-ui";
-import { joinPath } from "./helpers";
+import { getStoryPath, joinPath } from "./helpers";
 import { validatePreviewParams } from "./preview";
 import { ComponentType } from "react";
 import { redirect } from "next/navigation";
@@ -17,6 +17,7 @@ export class StoryblokNext<BlokTypes extends Components> {
   previewPath: string;
   client: StoryblokClient;
   rootSlug: string;
+  publicUrl: string;
   defaultLanguage: string | undefined;
   defaultStoryQueryParams: StoryQueryParams;
   dataResolvers: Resolvers<BlokTypes>;
@@ -29,6 +30,7 @@ export class StoryblokNext<BlokTypes extends Components> {
     defaultLanguage,
     hiddenPagePattern = /^_/,
     rootSlug = "home",
+    publicUrl = "/",
     defaultStoryQueryParams = {
       resolve_links: "url",
     },
@@ -39,6 +41,7 @@ export class StoryblokNext<BlokTypes extends Components> {
     defaultLanguage?: string | undefined;
     hiddenPagePattern?: RegExp;
     rootSlug?: string;
+    publicUrl?: string;
     defaultStoryQueryParams?: StoriesParams;
   }) {
     if (!previewToken) {
@@ -53,6 +56,7 @@ export class StoryblokNext<BlokTypes extends Components> {
     this.previewPath = joinPath("/", previewPath, "/");
     this.client = createStoryblokClient(this.previewToken);
     this.rootSlug = rootSlug;
+    this.publicUrl = publicUrl;
     this.dataResolvers = dataResolvers;
     this.defaultLanguage = defaultLanguage;
     this.hiddenPagePattern = hiddenPagePattern;
@@ -61,6 +65,10 @@ export class StoryblokNext<BlokTypes extends Components> {
 
   isRootSlug(slug: string[]) {
     return slug.length === 1 && slug[0] === this.rootSlug;
+  }
+
+  getPublicStoryUrl(story: Story) {
+    return joinPath(this.publicUrl, getStoryPath(story));
   }
 
   async createLoader(props: PageProps, preview = false): Promise<StoryLoader> {

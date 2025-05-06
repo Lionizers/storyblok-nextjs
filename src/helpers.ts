@@ -1,14 +1,6 @@
-import { ISbStoryParams } from "storyblok-js-client";
 import { is } from "type-assurance";
 
 import { Story, StoryLink } from "./storyblok-types";
-
-export function versionParams(token?: string): ISbStoryParams {
-  return {
-    version: token ? "draft" : "published",
-    token,
-  };
-}
 
 /**
  * Returns a story's URL path from a DocLink.
