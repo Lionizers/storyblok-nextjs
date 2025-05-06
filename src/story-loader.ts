@@ -84,7 +84,7 @@ export class StoryLoader {
     const story = data.story as Story;
 
     this.rewriteLinks(story);
-    this.resolveData(story);
+    await this.resolveData(story);
     return story;
   }
 
