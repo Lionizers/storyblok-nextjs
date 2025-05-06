@@ -1,6 +1,6 @@
 {
   "name": "storyblok-nextjs",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Next.js integration for Storyblok",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
