@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { StoryblokClient } from "@storyblok/react";
 import {
   isApiError,
@@ -13,6 +13,7 @@ import { resolveData } from "./resolve-data";
 
 export interface StoryLoaderOptions {
   pageSlug: string;
+  rootSlug: string;
   client: StoryblokClient;
   defaults: StoryQueryParams;
   dataResolvers: Resolvers<any>;
@@ -23,6 +24,7 @@ export interface StoryLoaderOptions {
 
 export class StoryLoader {
   protected pageSlug: string;
+  protected rootSlug: string;
   protected client: StoryblokClient;
   protected defaults: StoryQueryParams;
   protected dataResolvers: Resolvers<any>;
@@ -34,6 +36,7 @@ export class StoryLoader {
 
   constructor({
     pageSlug,
+    rootSlug,
     client,
     defaults,
     dataResolvers,
@@ -42,6 +45,7 @@ export class StoryLoader {
     hiddenPagePattern,
   }: StoryLoaderOptions) {
     this.pageSlug = pageSlug;
+    this.rootSlug = rootSlug;
     this.client = client;
     this.defaults = defaults;
     this.dataResolvers = dataResolvers;
@@ -52,11 +56,16 @@ export class StoryLoader {
   }
 
   async getPageStory() {
+    const slug = this.pageSlug || this.rootSlug;
     try {
-      if (this.hiddenPagePattern.test(this.pageSlug)) {
+      if (this.hiddenPagePattern.test(slug)) {
         notFound();
       }
-      return await this.getStory(this.pageSlug);
+      const story = await this.getStory(slug);
+      if (story.path && this.pageSlug === story.slug && !this.previewParams) {
+        redirect(story.path);
+      }
+      return story;
     } catch (err: unknown) {
       if (isApiError(err) && err.status === 404) {
         notFound();

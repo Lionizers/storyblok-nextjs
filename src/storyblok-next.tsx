@@ -66,7 +66,8 @@ export class StoryblokNext<BlokTypes extends Components> {
   async createLoader(props: PageProps, preview = false): Promise<StoryLoader> {
     const { slug = [], lang } = await props.params;
     const options: StoryLoaderOptions = {
-      pageSlug: slug.join("/") ?? this.rootSlug,
+      pageSlug: slug.join("/"),
+      rootSlug: this.rootSlug,
       client: this.client,
       dataResolvers: this.dataResolvers,
       hiddenPagePattern: this.hiddenPagePattern,
