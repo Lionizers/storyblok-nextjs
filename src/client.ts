@@ -1,6 +1,6 @@
 ///<reference types="next/types/global" />
 import StoryblokClient, { ISbStoriesParams } from "storyblok-js-client";
-import { getIndexTag, getPageTag } from "./tags";
+import { getContentTypeTag, getIndexTag, getPageTag } from "./tags";
 
 export function createStoryblokClient(publicToken?: string) {
   const client = new StoryblokClient({
@@ -34,6 +34,11 @@ export function createStoryblokClient(publicToken?: string) {
           next.tags.push(getPageTag(storySlug));
         }
 
+        const contentType = url.searchParams.get("content_type");
+        if (contentType) {
+          next.tags.push(getContentTypeTag(contentType));
+        }
+
         // Also use the `by_slugs` parameter for tagging
         const bySlugs = url.searchParams.get("by_slugs");
         if (bySlugs) {
@@ -57,6 +62,7 @@ export function createStoryblokClient(publicToken?: string) {
       // Remove the cv parameter (content version) so that we always get the
       // latest version.
       url.searchParams.delete("cv");
+      console.log("fetch", url, next.tags);
       const res = await fetch(url, { ...init, next });
       if (!res.ok) {
         console.warn(`Storyblok API response status ${res.status}`);
