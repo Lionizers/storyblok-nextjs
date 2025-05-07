@@ -65,6 +65,7 @@ export type StoryLink = {
   cached_url: string;
   public_url?: string;
   story?: Story;
+  anchor?: string;
 };
 
 export const isStoryLink = typeGuard({
@@ -72,6 +73,7 @@ export const isStoryLink = typeGuard({
   id: String,
   cached_url: String,
   public_url: optional(String),
+  anchor: optional(String),
 });
 
 export const isUrlLink = typeGuard({

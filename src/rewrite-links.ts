@@ -35,7 +35,7 @@ export function rewriteLink(
 ) {
   if (isStoryLink(value)) {
     const path = getStoryLinkPath(value);
-    if (path) value.public_url = extendUrl(path, prefix, params);
+    if (path) value.public_url = extendUrl(path, prefix, params, value.anchor);
   } else if (isRichTextStoryLink(value)) {
     value.attrs.href = extendUrl(
       getDocLinkStoryPath(value.attrs.story),

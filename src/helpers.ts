@@ -115,7 +115,8 @@ export function joinPath(...parts: Array<string | undefined>) {
 export function extendUrl(
   href: string,
   prefix?: string,
-  params?: URLSearchParams
+  params?: URLSearchParams,
+  hash?: string
 ) {
   const url = new URL(joinPath(prefix, href), "file://");
   if (params) {
@@ -123,7 +124,8 @@ export function extendUrl(
       url.searchParams.set(name, value);
     });
   }
-  return url.pathname + url.search;
+  if (hash) url.hash = hash;
+  return url.pathname + url.search + url.hash;
 }
 
 export function deepMerge(
