@@ -1,4 +1,5 @@
 import { StoryblokClient } from "@storyblok/react";
+import { Metadata } from "next";
 import { createStoryblokClient } from "./client";
 import { StoriesParams, Story, StoryQueryParams } from "./storyblok-types";
 import { Components, PageProps, Resolvers } from "./types";
@@ -109,6 +110,19 @@ export class StoryblokNext<BlokTypes extends Components> {
       const loader = await this.createLoader(props);
       const story = await loader.getPageStory();
       return <Render.One {...story.content} />;
+    };
+  }
+
+  meta(
+    generateMetadata: (
+      story: Story,
+      loader: StoryLoader
+    ) => Metadata | Promise<Metadata>
+  ) {
+    return async (props: PageProps) => {
+      const loader = await this.createLoader(props);
+      const story = await loader.getPageStory();
+      return generateMetadata(story, loader);
     };
   }
 

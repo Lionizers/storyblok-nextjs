@@ -1,3 +1,4 @@
+import { imageEngineURL, ImageFilters } from "./image-loader";
 import { Asset } from "./storyblok-types";
 
 type Dimensions = {
@@ -125,4 +126,26 @@ function encodeAspect(src: string, opts?: ImageOpts) {
  */
 export function withCorsHeaders(url: string) {
   return url.replace("https://a.storyblok.com", "//a2.storyblok.com");
+}
+
+export function ogImage(
+  asset?: Asset,
+  width = 1200,
+  height = 630,
+  smart = true,
+  filters?: ImageFilters
+) {
+  if (asset?.filename) {
+    return {
+      width,
+      height,
+      url: imageEngineURL(
+        new URL(asset.filename),
+        width,
+        height,
+        smart,
+        filters
+      ),
+    };
+  }
 }

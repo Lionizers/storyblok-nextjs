@@ -2,7 +2,8 @@ import { ComponentPropsWithoutRef, FunctionComponent } from "react";
 import { RichText, Story } from "./storyblok-types";
 import { StoryLoader } from "./story-loader";
 import { RenderOptions } from "storyblok-rich-text-react-renderer";
-export { RenderOptions } from "storyblok-rich-text-react-renderer";
+
+export type { RenderOptions } from "storyblok-rich-text-react-renderer";
 
 export interface PageParams {
   slug?: string[];
