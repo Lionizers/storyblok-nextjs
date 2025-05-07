@@ -62,7 +62,6 @@ export function createStoryblokClient(publicToken?: string) {
       // Remove the cv parameter (content version) so that we always get the
       // latest version.
       url.searchParams.delete("cv");
-      console.log("fetch", url, next.tags);
       const res = await fetch(url, { ...init, next });
       if (!res.ok) {
         console.warn(`Storyblok API response status ${res.status}`);
