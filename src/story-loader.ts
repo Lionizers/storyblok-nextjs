@@ -57,12 +57,13 @@ export class StoryLoader {
 
   async getPageStory() {
     const slug = this.pageSlug || this.rootSlug;
+    const preview = !!this.previewParams;
     try {
-      if (this.hiddenPagePattern.test(slug)) {
+      if (this.hiddenPagePattern.test(slug) && !preview) {
         notFound();
       }
       const story = await this.getStory(slug);
-      if (story.path && this.pageSlug === story.slug && !this.previewParams) {
+      if (story.path && this.pageSlug === story.slug && !preview) {
         redirect(story.path);
       }
       return story;
