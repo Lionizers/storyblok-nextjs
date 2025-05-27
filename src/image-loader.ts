@@ -3,6 +3,8 @@ import { ImageLoaderProps } from "next/image";
 import { getAssetDimensions } from "./assets";
 import { joinPath } from "./helpers";
 
+const assetDomain = process.env.STORYBLOK_ASSET_DOMAIN;
+
 export function storyblokImageLoader(props: ImageLoaderProps) {
   const { src, width, quality } = props;
   const size = getAssetDimensions(src);
@@ -44,5 +46,5 @@ export function imageEngineURL(
     const s = filterString(filters);
     if (s) parts.push(s);
   }
-  return joinPath(url.origin, ...parts);
+  return joinPath(assetDomain ?? url.origin, ...parts);
 }
