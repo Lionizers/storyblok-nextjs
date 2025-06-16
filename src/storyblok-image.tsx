@@ -4,6 +4,7 @@ import Image, { ImageProps } from "next/image";
 import { storyblokImageLoader } from "./image-loader";
 import { Asset } from "./storyblok-types";
 import { getImageProps } from "./assets";
+import { CSSProperties } from "react";
 
 export function StoryblokImage(props: ImageProps) {
   return <Image {...props} loader={storyblokImageLoader} />;
@@ -12,6 +13,7 @@ export function StoryblokImage(props: ImageProps) {
 type AssetImageProps = {
   asset?: Asset;
   className?: string;
+  style?: CSSProperties;
   aspect?: number;
   sizes?: string;
   fill?: boolean;
