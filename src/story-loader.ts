@@ -62,8 +62,12 @@ export class StoryLoader {
       if (this.hiddenPagePattern.test(slug) && !preview) {
         notFound();
       }
+      const external = decodeURIComponent(slug).match(/^(https?):\/\/?(.+)/);
+      if (external) {
+        redirect(`${external[1]}://${external[2]}`);
+      }
       const story = await this.getStory(slug);
-      if (story.path && this.pageSlug === story.slug && !preview) {
+      if (story.path && this.pageSlug === story.full_slug && !preview) {
         redirect(story.path);
       }
       return story;
