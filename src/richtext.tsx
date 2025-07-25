@@ -179,13 +179,15 @@ export function createRichTextComponent(
         // Ignore all text styles that might have ended in the richtext document
         // instead of rendering a <span style={...}> node:
         [MARK_TEXT_STYLE]: (children) => <>{children}</>,
+
         [MARK_LINK]: (children, props) => {
-          const { href, linktype } = props;
-          if (href && linktype === "story") {
-            return <Link href={href}>{children}</Link>;
+          const { href = "", linktype, anchor } = props;
+          const url = anchor ? `${href}#${anchor}` : href;
+          if (url && linktype === "story") {
+            return <Link href={url}>{children}</Link>;
           }
           return (
-            <a href={href} target="_blank">
+            <a href={url} target="_blank">
               {children}
             </a>
           );
