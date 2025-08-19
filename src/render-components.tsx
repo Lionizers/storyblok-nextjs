@@ -1,4 +1,9 @@
-import { cloneElement, FunctionComponent, isValidElement } from "react";
+import {
+  cloneElement,
+  Fragment,
+  FunctionComponent,
+  isValidElement,
+} from "react";
 import { ErrorBox } from "./error-box";
 import { Block, Story } from "./storyblok-types";
 import { Components, RichTextOptions } from "./types";
@@ -16,7 +21,7 @@ function wrapBlok(comp: FunctionComponent) {
         const el = comp(props);
         if (props._editable) {
           const attrs = editableDataAttrs(props._editable);
-          if (attrs && isValidElement(el)) {
+          if (attrs && isValidElement(el) && el.type !== Fragment) {
             return cloneElement(el, attrs);
           }
         }
