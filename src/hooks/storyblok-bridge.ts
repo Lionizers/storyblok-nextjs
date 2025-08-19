@@ -111,10 +111,20 @@ export function useStoryblokBridge(
   return story;
 }
 
-async function mergeResolvedData(value: unknown, initialStory: Story) {
+async function mergeResolvedData(
+  value: unknown,
+  initialStory: Story,
+  visited = new WeakSet()
+) {
+  if (is(value, {})) {
+    if (visited.has(value)) return;
+    visited.add(value);
+  }
   const { resolved_data, public_url_prefix, preview_params } = initialStory;
   if (is(value, [])) {
-    await Promise.all(value.map((v) => mergeResolvedData(v, initialStory)));
+    await Promise.all(
+      value.map((v) => mergeResolvedData(v, initialStory, visited))
+    );
   } else if (is(value, {})) {
     if (resolved_data) {
       if (isBlock(value)) {
@@ -146,7 +156,9 @@ async function mergeResolvedData(value: unknown, initialStory: Story) {
       );
     }
     await Promise.all(
-      Object.values(value).map((v) => mergeResolvedData(v, initialStory))
+      Object.values(value).map((v) =>
+        mergeResolvedData(v, initialStory, visited)
+      )
     );
   }
 }
