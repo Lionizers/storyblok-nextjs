@@ -186,6 +186,11 @@ export function createRichTextComponent(
           if (url && linktype === "story") {
             return <Link href={url}>{children}</Link>;
           }
+          if (url.startsWith("#")) {
+            return (
+              <a href={url}>{children}</a>
+            );
+          }
           return (
             <a href={url} target="_blank">
               {children}
