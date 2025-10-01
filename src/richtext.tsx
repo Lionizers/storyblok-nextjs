@@ -69,14 +69,17 @@ function isInlineComponent(blok: unknown, pattern: RegExp = /inline/i) {
   );
 }
 
-function stringToDoc(text: string | RichText): RichText {
-  if (typeof text === "string") {
+function stringToDoc(s: string | RichText): RichText {
+  if (typeof s === "string") {
     return {
       type: "doc",
-      content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+      content: s.split("\n").map((text) => ({
+        type: "paragraph",
+        content: [{ type: "text", text }],
+      })),
     };
   }
-  return text;
+  return s;
 }
 
 /**
@@ -157,7 +160,7 @@ export function createRichTextComponent(
     text,
     richTextOptions = defaultRichTextOptions,
   }: {
-    text?: RichText;
+    text?: RichText | string;
     richTextOptions?: RichTextOptions;
   }) {
     const defaultOptions: RenderOptions = {
@@ -187,9 +190,7 @@ export function createRichTextComponent(
             return <Link href={url}>{children}</Link>;
           }
           if (url.startsWith("#")) {
-            return (
-              <a href={url}>{children}</a>
-            );
+            return <a href={url}>{children}</a>;
           }
           return (
             <a href={url} target="_blank">
